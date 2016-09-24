@@ -19,6 +19,27 @@ public:
         m_defined = true;
         m_value = value;
     }
+    virtual void get_value(uint8_t *value, int x, int y) {
+        *value = m_value;
+    }
+    virtual void get_value(uint16_t *value, int x, int y) {
+        *value = m_value;
+    }
+    virtual void get_value(uint32_t *value, int x, int y) {
+        *value = m_value;
+    }
+    virtual void get_value(int16_t *value, int x, int y) {
+        *value = m_value;
+    }
+    virtual void get_value(int32_t *value, int x, int y) {
+        *value = m_value;
+    }
+    virtual void get_value(float *value, int x, int y) {
+        *value = m_value;
+    }
+    virtual void get_value(double *value, int x, int y) {
+        *value = m_value;
+    }
     virtual gma_number_t *clone() {
         gma_number_p<type> *n = new gma_number_p<type>();
         if (m_defined)
@@ -42,7 +63,7 @@ public:
             else
                 return std::numeric_limits<type>::max();
         else
-            return (double)m_value;
+            return m_value;
     }
     void inc() {
         ++m_value;
@@ -597,29 +618,6 @@ public:
             return value;
     }
     virtual GDALDataType datatype() { return gma_number_p<datatype_t>::datatype_p(); };
-};
-
-template <typename datatype_t>
-class gma_logical_operation_p : public gma_logical_operation_t {
-public:
-    gma_operator_t m_op;
-    datatype_t m_value;
-    gma_logical_operation_p() {
-        m_op = gma_eq;
-        m_value = 0;
-    }
-    virtual GDALDataType datatype() {
-        return gma_number_p<datatype_t>::datatype_p();
-    }
-    virtual void set_operation(gma_operator_t op) {
-        m_op = op;
-    }
-    virtual void set_value(int value) {
-        m_value = value;
-    }
-    virtual void set_value(double value) {
-        m_value = value;
-    }
 };
 
 class gma_cell_callback_p : public gma_cell_callback_t {

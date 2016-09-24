@@ -4,7 +4,7 @@ inc = /home/ajolma/usr/include
 
 gdal = -L/home/ajolma/usr/lib -lgdal
 
-gma = -L/home/ajolma/github/gdal/gdal/map_algebra -lgma
+gma = -L. -lgma
 
 cpp_objects = gma_classes.o
 
@@ -12,11 +12,14 @@ cpp_headers = gdal_map_algebra_core.h gdal_map_algebra_classes.hpp gdal_map_alge
 
 shared_library = libgma.so
 
-programs = test demo histogram d8
+programs = demo histogram op-test
 
 all: $(programs)
 #	cd perl; make all; cd ..
 #	cd python; make all; cd ..
+
+op-test: op-test.cpp $(cpp_objects) $(cpp_headers) $(shared_library)
+	gcc $(cflags) -o op-test -I $(inc) op-test.cpp $(gma) $(gdal) -lstdc++ -lm
 
 test: test.cpp $(cpp_objects) $(cpp_headers) $(shared_library)
 	gcc $(cflags) -o test -I $(inc) test.cpp $(gma) $(gdal) -lstdc++ -lm

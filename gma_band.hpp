@@ -2,10 +2,19 @@
 #include <cstdlib>
 #include <cmath>
 
-typedef struct {
+class gma_block_index {
+public:
     int x;
     int y;
-} gma_block_index; // block coordinates
+    gma_block_index() {
+        x = 0;
+        y = 0;
+    }
+    gma_block_index(int init_x, int init_y) {
+        x = init_x;
+        y = init_y;
+    }
+};
 
 // cell coordinates in block or globally
 class gma_cell_index {
@@ -132,6 +141,14 @@ public:
         --m_n;
         m_blocks = blocks;
     }
+    void remove(gma_block_index index) {
+        if (!m_blocks) return;
+        for (int i = 0; i < m_n; ++i)
+            if (m_blocks[i]->m_index.x == index.x && m_blocks[i]->m_index.y == index.y) {
+                remove(i);
+                return;
+            }
+    }
     gma_block<datatype> *retrieve(gma_block_index index) {
         if (!m_blocks) return NULL;
         for (int i = 0; i < m_n; ++i)
@@ -177,13 +194,6 @@ public:
 class gma_two_bands_t {
 public:
     virtual void set_progress_fct(GDALProgressFunc progress, void * progress_arg) {};
-
-    virtual void assign(gma_band_t *, gma_band_t *, gma_logical_operation_t *op = NULL) {};
-    virtual void add(gma_band_t *, gma_band_t *, gma_logical_operation_t *op = NULL) {};
-    virtual void subtract(gma_band_t *, gma_band_t *, gma_logical_operation_t *op = NULL) {};
-    virtual void multiply(gma_band_t *, gma_band_t *, gma_logical_operation_t *op = NULL) {};
-    virtual void divide(gma_band_t *, gma_band_t *, gma_logical_operation_t *op = NULL) {};
-    virtual void modulus(gma_band_t *, gma_band_t *, gma_logical_operation_t *op = NULL) {};
 
     virtual void decision(gma_band_t *a, gma_band_t *b, gma_band_t *c) {};
 
@@ -311,6 +321,9 @@ public:
             cache.add(b);
         }
     }
+    void remove_from_cache(gma_block_index i) {
+        cache.remove(i);
+    }
     template <typename type1> void update_cache(gma_band_p<type1> *band1, gma_block<type1> *b1, int d) {
 
         // which blocks in this band are needed to cover a block extended with focal distance d in band 1?
@@ -426,9 +439,56 @@ public:
         } else
             return false;
     }
+    virtual void get_value(uint8_t *value, int x, int y) {
+        gma_block_index bi(x / m_w_block, y / m_h_block);
+        gma_block<datatype_t> *block = get_block(bi);
+        gma_cell_index ci(x % m_w_block, y % m_h_block);
+        *value = block->cell(ci);
+    }
+    virtual void get_value(uint16_t *value, int x, int y) {
+        gma_block_index bi(x / m_w_block, y / m_h_block);
+        gma_block<datatype_t> *block = get_block(bi);
+        gma_cell_index ci(x % m_w_block, y % m_h_block);
+        *value = block->cell(ci);
+    }
+    virtual void get_value(uint32_t *value, int x, int y) {
+        gma_block_index bi(x / m_w_block, y / m_h_block);
+        gma_block<datatype_t> *block = get_block(bi);
+        gma_cell_index ci(x % m_w_block, y % m_h_block);
+        *value = block->cell(ci);
+    }
+    virtual void get_value(int16_t *value, int x, int y) {
+        gma_block_index bi(x / m_w_block, y / m_h_block);
+        gma_block<datatype_t> *block = get_block(bi);
+        gma_cell_index ci(x % m_w_block, y % m_h_block);
+        *value = block->cell(ci);
+    }
+    virtual void get_value(int32_t *value, int x, int y) {
+        gma_block_index bi(x / m_w_block, y / m_h_block);
+        gma_block<datatype_t> *block = get_block(bi);
+        gma_cell_index ci(x % m_w_block, y % m_h_block);
+        *value = block->cell(ci);
+    }
+    virtual void get_value(float *value, int x, int y) {
+        gma_block_index bi(x / m_w_block, y / m_h_block);
+        gma_block<datatype_t> *block = get_block(bi);
+        gma_cell_index ci(x % m_w_block, y % m_h_block);
+        *value = block->cell(ci);
+    }
+    virtual void get_value(double *value, int x, int y) {
+        gma_block_index bi(x / m_w_block, y / m_h_block);
+        gma_block<datatype_t> *block = get_block(bi);
+        gma_cell_index ci(x % m_w_block, y % m_h_block);
+        *value = block->cell(ci);
+    }
 
     virtual gma_band_t *new_band(const char *name, GDALDataType datatype) {
-        return gma_new_band(driver()->Create(name, w(), h(), 1, datatype, NULL)->GetRasterBand(1));
+        GDALDataset *d = driver()->Create(name, w(), h(), 1, datatype, NULL);
+        d->SetProjection(dataset()->GetProjectionRef());
+        double t[6];
+        dataset()->GetGeoTransform(t);
+        d->SetGeoTransform(t);
+        return gma_new_band(d->GetRasterBand(1));
     }
     virtual gma_number_t *new_number() {
         return new gma_number_p<datatype_t>();
@@ -458,9 +518,6 @@ public:
     virtual gma_cell_callback_t *new_cell_callback() {
         return new gma_cell_callback_p;
     }
-    virtual gma_logical_operation_t *new_logical_operation() {
-        return new gma_logical_operation_p<datatype_t>;
-    }
 
     struct callback {
         typedef int (gma_band_p<datatype_t>::*type)(gma_block<datatype_t>*, gma_object_t **, gma_object_t*, int);
@@ -486,6 +543,74 @@ public:
         }
     }
 
+    virtual void book_blocks(int x_min, int y_min, int x_max, int y_max) {
+        gma_block_index i;
+        i.x = x_min / m_w_block;
+        while (i.x <= x_max / m_w_block) {
+            i.y = y_min / m_h_block;
+            while (i.y <= y_max / m_h_block) {
+                add_to_cache(i);
+                ++i.y;
+            }
+            ++i.x;
+        }
+    }
+
+    virtual void unbook_blocks(int x_min, int y_min, int x_max, int y_max) {
+        gma_block_index i;
+        i.x = x_min / m_w_block;
+        while (i.x <= x_max / m_w_block) {
+            i.y = y_min / m_h_block;
+            while (i.y <= y_max / m_h_block) {
+                remove_from_cache(i);
+                ++i.y;
+            }
+            ++i.x;
+        }
+    }
+
+    // compute output from inputs according to given operation
+    void do_op(gma_block<datatype_t> *output, gma_object_t *op, gma_block_index bi) {
+        gma_cell_index i;
+        for (i.y = 0; i.y < output->h(); ++i.y) {
+            for (i.x = 0; i.x < output->w(); ++i.x) {
+                datatype_t value;
+                op->get_value(&value, bi.x*m_w_block+i.x, bi.y*m_h_block+i.y);
+                output->cell(i) = value;
+            }
+        }
+    }
+    
+    virtual void compute(gma_object_t *op) {
+        // make this parallel
+        int y_min = 0;
+        int y_max = m_h_block-1;
+        gma_block_index i;
+        for (i.y = 0; i.y < h_blocks; ++i.y) {
+            int x_min = 0;
+            int x_max = m_w_block-1;
+            for (i.x = 0; i.x < w_blocks; ++i.x) {
+                add_to_cache(i);
+                gma_block<datatype_t> *block = get_block(i);
+                // inputs below must be blocks of respective bands in case the input is a band
+                // => make a thread local copy of inputs with blocks instead of bands?
+                // inputs are only read from
+                op->book_blocks(x_min, y_min, x_max, y_max);
+                do_op(block, op, i);
+                op->unbook_blocks(x_min, y_min, x_max, y_max);
+                // the call below must be mutex
+                write_block(block);
+                remove_from_cache(i);
+                x_min += m_w_block;
+                x_max += m_w_block;
+                if (x_max >= m_w) x_max = m_w-1;
+            }
+            y_min += m_h_block;
+            y_max += m_h_block;
+            if (y_max >= m_h) y_max = m_h-1;
+        }
+    }
+
     int m_print(gma_block<datatype_t> *block, gma_object_t **, gma_object_t*, int) {
         gma_cell_index i;
         for (i.y = 0; i.y < block->h(); ++i.y) {
@@ -499,17 +624,6 @@ public:
             printf("\n");
         }
         return 1;
-    }
-
-    int m_rand(gma_block<datatype_t>* block, gma_object_t **, gma_object_t*, int) {
-        gma_cell_index i;
-        for (i.y = 0; i.y < block->h(); ++i.y) {
-            for (i.x = 0; i.x < block->w(); ++i.x) {
-                // fixme: datatype specific value
-                block->cell(i) = std::rand();
-            }
-        }
-        return 2;
     }
 
     int m_abs(gma_block<datatype_t> *block, gma_object_t **, gma_object_t*, int) {
@@ -626,11 +740,6 @@ public:
     virtual void print() {
         callback cb;
         cb.fct = &gma_band_p::m_print;
-        block_loop(cb);
-    }
-    virtual void rand() {
-        callback cb;
-        cb.fct = &gma_band_p::m_rand;
         block_loop(cb);
     }
     virtual void abs() {
@@ -1055,61 +1164,6 @@ public:
         cb.fct = &gma_band_p::m_get_cells;
         block_loop(cb, &retval, NULL);
         return rv;
-    }
-
-    virtual void assign(gma_band_t *b, gma_logical_operation_t *op = NULL) {
-        if (op && op->datatype() != b->datatype()) {
-            CPLError(CE_Failure, CPLE_IllegalArg, "The operation must have the same datatype as the argument band.");
-            return;
-        }
-        gma_two_bands_t *tb = gma_new_two_bands(datatype(), b->datatype()) ;
-        tb->set_progress_fct(m_progress, m_progress_arg);
-        tb->assign(this, b, op);
-    }
-    virtual void add(gma_band_t *b, gma_logical_operation_t *op = NULL) {
-        if (op && op->datatype() != b->datatype()) {
-            CPLError(CE_Failure, CPLE_IllegalArg, "The operation must have the same datatype as the argument band.");
-            return;
-        }
-        gma_two_bands_t *tb = gma_new_two_bands(datatype(), b->datatype()) ;
-        tb->set_progress_fct(m_progress, m_progress_arg);
-        tb->add(this, b, op);
-    }
-    virtual void subtract(gma_band_t *b, gma_logical_operation_t *op = NULL) {
-        if (op && op->datatype() != b->datatype()) {
-            CPLError(CE_Failure, CPLE_IllegalArg, "The operation must have the same datatype as the argument band.");
-            return;
-        }
-        gma_two_bands_t *tb = gma_new_two_bands(datatype(), b->datatype()) ;
-        tb->set_progress_fct(m_progress, m_progress_arg);
-        tb->subtract(this, b, op);
-    }
-    virtual void multiply(gma_band_t *b, gma_logical_operation_t *op = NULL) {
-        if (op && op->datatype() != b->datatype()) {
-            CPLError(CE_Failure, CPLE_IllegalArg, "The operation must have the same datatype as the argument band.");
-            return;
-        }
-        gma_two_bands_t *tb = gma_new_two_bands(datatype(), b->datatype()) ;
-        tb->set_progress_fct(m_progress, m_progress_arg);
-        tb->multiply(this, b, op);
-    }
-    virtual void divide(gma_band_t *b, gma_logical_operation_t *op = NULL) {
-        if (op && op->datatype() != b->datatype()) {
-            CPLError(CE_Failure, CPLE_IllegalArg, "The operation must have the same datatype as the argument band.");
-            return;
-        }
-        gma_two_bands_t *tb = gma_new_two_bands(datatype(), b->datatype()) ;
-        tb->divide(this, b, op);
-        tb->set_progress_fct(m_progress, m_progress_arg);
-    }
-    virtual void modulus(gma_band_t *b, gma_logical_operation_t *op = NULL) {
-        if (op && op->datatype() != b->datatype()) {
-            CPLError(CE_Failure, CPLE_IllegalArg, "The operation must have the same datatype as the argument band.");
-            return;
-        }
-        gma_two_bands_t *tb = gma_new_two_bands(datatype(), b->datatype()) ;
-        tb->set_progress_fct(m_progress, m_progress_arg);
-        tb->modulus(this, b, op);
     }
 
     virtual void decision(gma_band_t *value, gma_band_t *decision) {

@@ -29,20 +29,6 @@ typedef enum {
     gma_iterator
 } gma_class_t;
 
-/* logical operators */
-
-typedef enum {
-    gma_eq,
-    gma_ne,
-    gma_gt,
-    gma_lt,
-    gma_ge,
-    gma_le,
-    gma_and,
-    gma_or,
-    gma_not
-} gma_operator_t;
-
 #ifdef __cpluplus
 } // extern "C"
 #endif

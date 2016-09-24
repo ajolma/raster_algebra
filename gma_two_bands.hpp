@@ -76,121 +76,6 @@ public:
         b1->empty_cache();
         b2->empty_cache();
     }
-    bool test_operator(gma_logical_operation_p<type2> *op, type2 value) {
-        switch (op->m_op) {
-        case gma_eq:
-            return value == op->m_value;
-        case gma_ne:
-            return value != op->m_value;
-        case gma_gt:
-            return value > op->m_value;
-        case gma_lt:
-            return value < op->m_value;
-        case gma_ge:
-            return value >= op->m_value;
-        case gma_le:
-            return value <= op->m_value;
-        case gma_and:
-            return value && op->m_value;
-        case gma_or:
-            return value || op->m_value;
-        case gma_not:
-            return not value;
-        }
-        return false;
-    }
-    int m_assign(gma_block<type1> *block, gma_object_t**, gma_object_t *arg, int) {
-        gma_cell_index i;
-        for (i.y = 0; i.y < block->h(); ++i.y) {
-            for (i.x = 0; i.x < block->w(); ++i.x) {
-                if (b1->cell_is_nodata(block, i)) continue;
-                type2 a;
-                if (b2->has_value(b1, block, i, &a)) {
-                    if ((arg && test_operator((gma_logical_operation_p<type2> *)arg, a)) || !arg)
-                        block->cell(i) = MAX(MIN(a, std::numeric_limits<type1>::max()), std::numeric_limits<type1>::min());
-                }
-            }
-        }
-        return 2;
-    }
-    int m_add(gma_block<type1> *block, gma_object_t**, gma_object_t *arg, int) {
-        gma_cell_index i;
-        for (i.y = 0; i.y < block->h(); ++i.y) {
-            for (i.x = 0; i.x < block->w(); ++i.x) {
-                if (b1->cell_is_nodata(block, i)) continue;
-                type2 a;
-                if (b2->has_value(b1, block, i, &a)) {
-                    if ((arg && test_operator((gma_logical_operation_p<type2> *)arg, a)) || !arg)
-                        block->cell(i) = MAX(MIN(block->cell(i) + a, std::numeric_limits<type1>::max()), std::numeric_limits<type1>::min());
-                }
-            }
-        }
-        return 2;
-    }
-    int m_subtract(gma_block<type1> *block, gma_object_t**, gma_object_t *arg, int) {
-        gma_cell_index i;
-        for (i.y = 0; i.y < block->h(); ++i.y) {
-            for (i.x = 0; i.x < block->w(); ++i.x) {
-                if (b1->cell_is_nodata(block,i)) continue;
-                type2 a;
-                if (b2->has_value(b1, block, i, &a)) {
-                    if ((arg && test_operator((gma_logical_operation_p<type2> *)arg, a)) || !arg)
-                        block->cell(i) = MAX(MIN(block->cell(i) - a, std::numeric_limits<type1>::max()), std::numeric_limits<type1>::min());
-                }
-            }
-        }
-        return 2;
-    }
-    int m_multiply(gma_block<type1> *block, gma_object_t**, gma_object_t *arg, int) {
-        gma_cell_index i;
-        for (i.y = 0; i.y < block->h(); ++i.y) {
-            for (i.x = 0; i.x < block->w(); ++i.x) {
-                if (b1->cell_is_nodata(block,i)) continue;
-                type2 a;
-                if (b2->has_value(b1, block, i, &a)) {
-                    if ((arg && test_operator((gma_logical_operation_p<type2> *)arg, a)) || !arg)
-                        block->cell(i) = MAX(MIN(block->cell(i) * a, std::numeric_limits<type1>::max()), std::numeric_limits<type1>::min());
-                }
-            }
-        }
-        return 2;
-    }
-    int m_divide(gma_block<type1> *block, gma_object_t**, gma_object_t *arg, int) {
-        gma_cell_index i;
-        for (i.y = 0; i.y < block->h(); ++i.y) {
-            for (i.x = 0; i.x < block->w(); ++i.x) {
-                if (b1->cell_is_nodata(block,i)) continue;
-                type2 a;
-                if (b2->has_value(b1, block, i, &a)) {
-                    if ((arg && test_operator((gma_logical_operation_p<type2> *)arg, a)) || !arg) {
-                        if (a == 0)
-                            block->cell(i) = std::numeric_limits<type1>::quiet_NaN();
-                        else
-                            block->cell(i) = MAX(MIN(block->cell(i) / a, std::numeric_limits<type1>::max()), std::numeric_limits<type1>::min());
-                    }
-                }
-            }
-        }
-        return 2;
-    }
-    int m_modulus(gma_block<type1> *block, gma_object_t**, gma_object_t *arg, int) {
-        gma_cell_index i;
-        for (i.y = 0; i.y < block->h(); ++i.y) {
-            for (i.x = 0; i.x < block->w(); ++i.x) {
-                if (b1->cell_is_nodata(block,i)) continue;
-                type2 a;
-                if (b2->has_value(b1, block, i, &a)) {
-                    if ((arg && test_operator((gma_logical_operation_p<type2> *)arg, a)) || !arg) {
-                        if (a == 0)
-                            block->cell(i) = std::numeric_limits<type1>::quiet_NaN();
-                        else
-                            block->cell(i) %= a;
-                    }
-                }
-            }
-        }
-        return 2;
-    }
     int m_decision(gma_block<type1> *block, gma_object_t**, gma_object_t*, int) {
         gma_cell_index i;
         for (i.y = 0; i.y < block->h(); ++i.y) {
@@ -599,48 +484,6 @@ public:
 
 
 public:
-    virtual void assign(gma_band_t *band1, gma_band_t *band2, gma_logical_operation_t *op = NULL) {
-        b1 = (gma_band_p<type1>*)band1;
-        b2 = (gma_band_p<type2>*)band2;
-        callback cb;
-        cb.fct = &gma_two_bands_p::m_assign;
-        block_loop(cb, NULL, op);
-    }
-    virtual void add(gma_band_t *summand1, gma_band_t *summand2, gma_logical_operation_t *op = NULL) {
-        b1 = (gma_band_p<type1>*)summand1;
-        b2 = (gma_band_p<type2>*)summand2;
-        callback cb;
-        cb.fct = &gma_two_bands_p::m_add;
-        block_loop(cb, NULL, op);
-    }
-    virtual void subtract(gma_band_t *band1, gma_band_t *band2, gma_logical_operation_t *op = NULL) {
-        b1 = (gma_band_p<type1>*)band1;
-        b2 = (gma_band_p<type2>*)band2;
-        callback cb;
-        cb.fct = &gma_two_bands_p::m_subtract;
-        block_loop(cb, NULL, op);
-    }
-    virtual void multiply(gma_band_t *band1, gma_band_t *band2, gma_logical_operation_t *op = NULL) {
-        b1 = (gma_band_p<type1>*)band1;
-        b2 = (gma_band_p<type2>*)band2;
-        callback cb;
-        cb.fct = &gma_two_bands_p::m_multiply;
-        block_loop(cb, NULL, op);
-    }
-    virtual void divide(gma_band_t *band1, gma_band_t *band2, gma_logical_operation_t *op = NULL) {
-        b1 = (gma_band_p<type1>*)band1;
-        b2 = (gma_band_p<type2>*)band2;
-        callback cb;
-        cb.fct = &gma_two_bands_p::m_divide;
-        block_loop(cb, NULL, op);
-    }
-    virtual void modulus(gma_band_t *band1, gma_band_t *band2, gma_logical_operation_t *op = NULL) {
-        b1 = (gma_band_p<type1>*)band1;
-        b2 = (gma_band_p<type2>*)band2;
-        callback cb;
-        cb.fct = &gma_two_bands_p::m_modulus;
-        block_loop(cb, NULL, op);
-    }
     virtual void decision(gma_band_t *a, gma_band_t *b, gma_band_t *c) {
         b1 = (gma_band_p<type1>*)a;
         b2 = (gma_band_p<type2>*)b;
@@ -677,7 +520,8 @@ public:
     virtual void fill_depressions(gma_band_t *filled_dem, gma_band_t *dem) {
         b1 = (gma_band_p<type1>*)filled_dem;
         b2 = (gma_band_p<type2>*)dem;
-        double max_elev = b2->get_max()->value_as_double();
+        double max_elev;
+        b2->get_max()->get_value(&max_elev);
         b1->assign(max_elev);
         callback cb;
         cb.fct = &gma_two_bands_p::m_fill_depressions;
@@ -716,28 +560,3 @@ public:
         block_loop(cb, &retval, outlet, 1);
     }
 };
-
-template <> int gma_two_bands_p<uint8_t,float>::m_modulus(gma_block<uint8_t>*, gma_object_t**, gma_object_t*, int);
-template <> int gma_two_bands_p<uint8_t,double>::m_modulus(gma_block<uint8_t>*, gma_object_t**, gma_object_t*, int);
-template <> int gma_two_bands_p<uint16_t,float>::m_modulus(gma_block<uint16_t>*, gma_object_t**, gma_object_t*, int);
-template <> int gma_two_bands_p<uint16_t,double>::m_modulus(gma_block<uint16_t>*, gma_object_t**, gma_object_t*, int);
-template <> int gma_two_bands_p<int16_t,float>::m_modulus(gma_block<int16_t>*, gma_object_t**, gma_object_t*, int);
-template <> int gma_two_bands_p<int16_t,double>::m_modulus(gma_block<int16_t>*, gma_object_t**, gma_object_t*, int);
-template <> int gma_two_bands_p<uint32_t,float>::m_modulus(gma_block<uint32_t>*, gma_object_t**, gma_object_t*, int);
-template <> int gma_two_bands_p<uint32_t,double>::m_modulus(gma_block<uint32_t>*, gma_object_t**, gma_object_t*, int);
-template <> int gma_two_bands_p<int32_t,float>::m_modulus(gma_block<int32_t>*, gma_object_t**, gma_object_t*, int);
-template <> int gma_two_bands_p<int32_t,double>::m_modulus(gma_block<int32_t>*, gma_object_t**, gma_object_t*, int);
-template <> int gma_two_bands_p<float,float>::m_modulus(gma_block<float>*, gma_object_t**, gma_object_t*, int);
-template <> int gma_two_bands_p<float,double>::m_modulus(gma_block<float>*, gma_object_t**, gma_object_t*, int);
-template <> int gma_two_bands_p<float,uint8_t>::m_modulus(gma_block<float>*, gma_object_t**, gma_object_t*, int);
-template <> int gma_two_bands_p<float,uint16_t>::m_modulus(gma_block<float>*, gma_object_t**, gma_object_t*, int);
-template <> int gma_two_bands_p<float,int16_t>::m_modulus(gma_block<float>*, gma_object_t**, gma_object_t*, int);
-template <> int gma_two_bands_p<float,uint32_t>::m_modulus(gma_block<float>*, gma_object_t**, gma_object_t*, int);
-template <> int gma_two_bands_p<float,int32_t>::m_modulus(gma_block<float>*, gma_object_t**, gma_object_t*, int);
-template <> int gma_two_bands_p<double,float>::m_modulus(gma_block<double>*, gma_object_t**, gma_object_t*, int);
-template <> int gma_two_bands_p<double,double>::m_modulus(gma_block<double>*, gma_object_t**, gma_object_t*, int);
-template <> int gma_two_bands_p<double,uint8_t>::m_modulus(gma_block<double>*, gma_object_t**, gma_object_t*, int);
-template <> int gma_two_bands_p<double,uint16_t>::m_modulus(gma_block<double>*, gma_object_t**, gma_object_t*, int);
-template <> int gma_two_bands_p<double,int16_t>::m_modulus(gma_block<double>*, gma_object_t**, gma_object_t*, int);
-template <> int gma_two_bands_p<double,uint32_t>::m_modulus(gma_block<double>*, gma_object_t**, gma_object_t*, int);
-template <> int gma_two_bands_p<double,int32_t>::m_modulus(gma_block<double>*, gma_object_t**, gma_object_t*, int);
