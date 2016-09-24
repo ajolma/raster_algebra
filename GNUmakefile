@@ -21,6 +21,9 @@ all: $(programs)
 op-test: op-test.cpp $(cpp_objects) $(cpp_headers) $(shared_library)
 	gcc $(cflags) -o op-test -I $(inc) op-test.cpp $(gma) $(gdal) -lstdc++ -lm
 
+run-test: test
+	LD_LIBRARY_PATH=.:/home/ajolma/usr/lib; ./test
+
 test: test.cpp $(cpp_objects) $(cpp_headers) $(shared_library)
 	gcc $(cflags) -o test -I $(inc) test.cpp $(gma) $(gdal) -lstdc++ -lm
 
